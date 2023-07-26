@@ -3,4 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+# 编译时跳过warn部分
+ignored_error_codes = [1878,5574,2018,2072,5667,9302,5815,3628,2519,8760,6321,5740,3420]
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
