@@ -4,7 +4,9 @@ Damn Vulnerable Defi 是款针对合约安全审计的 wargame
 
 此 repo 是针对 Damn Vulnerable DeFi 在 foundry 上的解决方案
 
-1. [Unstoppable](#unstoppable)
+> [Unstoppable](#unstoppable)
+>
+> [Naive Receiver](#naive-receiver)
 
 ---
 
@@ -30,5 +32,15 @@ if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // e
 [Solution](./test/unstoppable.t.sol)
 
 `forge test --match-path ./test/unstoppable.t.sol -vvv`
+
+## Naive Receiver
+
+漏洞在于 pool 合约逻辑上允许任何人代替任何接受者调用 flashloan(),因此可以耗尽接收合约里的资金
+
+具体只要另外实现一个攻击逻辑的合约,在合约的 fallback() 上代替接受者调 flashloan() 就可以了,调一次就抽接受者 flashFee() 的 ETH ,多调几次就抽干接受者的资金到池子里去了(当然这里例子是直接设置了 flashFee()是 1 ether,事实上不会到那么贵的)
+
+[Solution](./test/naive_receiver.t.sol)
+
+`forge test --match-path ./test/naive_receiver.t.sol -vvv`
 
 [官方地址](https://www.damnvulnerabledefi.xyz/)
