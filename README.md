@@ -7,6 +7,8 @@ Damn Vulnerable Defi 是款针对合约安全审计的 wargame
 > [Unstoppable](#unstoppable)
 >
 > [Naive Receiver](#naive-receiver)
+>
+> [Truster](#truster)
 
 ---
 
@@ -42,5 +44,22 @@ if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // e
 [Solution](./test/naive_receiver.t.sol)
 
 `forge test --match-path ./test/naive_receiver.t.sol -vvv`
+
+## Truster
+
+```js
+token.transfer(borrower, amount);
+target.functionCall(data);
+```
+
+漏洞在于调用 flashloan()时,不对 amount 进行限制,也就是甚至可以进行 0 金额的闪贷
+
+而且 flashloan()的内部还支持 call 外部的函数
+
+这样以来可以申请 0 金额的闪电贷,再传入批准(approve) hacker 操作指定金额的函数指令去 call,那 hacker 在闪电贷结束后就可以从中随意提取指定的金额了
+
+[Solution](./test/truster.t.sol)
+
+`forge test --match-path ./test/truster.t.sol -vvv`
 
 [官方地址](https://www.damnvulnerabledefi.xyz/)
