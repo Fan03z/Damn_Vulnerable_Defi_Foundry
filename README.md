@@ -9,6 +9,8 @@ Damn Vulnerable Defi 是款针对合约安全审计的 wargame
 > [Naive Receiver](#naive-receiver)
 >
 > [Truster](#truster)
+>
+> [Side Entrance](#side-entrance)
 
 ---
 
@@ -61,5 +63,22 @@ target.functionCall(data);
 [Solution](./test/truster.t.sol)
 
 `forge test --match-path ./test/truster.t.sol -vvv`
+
+## Side Entrance
+
+```js
+// 存储或者提取改的都是设置的balances数组的值
+mapping(address => uint256) private balances;
+// 但闪电贷里却是直接检测eth余额
+uint256 balanceBefore = address(this).balance;
+```
+
+和 Unstoppable 问题差不多,都是在于闪电贷和合约存储是用的两套不同的计算系统
+
+实际攻击只要先借闪电贷,再在其回调函数 execute() 里调 deposit() 存回闪电贷合约去,这样结束之后 balances[] 上记的值多了,接下来就直接调 withdraw() 正常提出去就好了
+
+[Solution](./test/side_entrance.t.sol)
+
+`forge test --match-path ./test/side_entrance.t.sol -vvv`
 
 [官方地址](https://www.damnvulnerabledefi.xyz/)
