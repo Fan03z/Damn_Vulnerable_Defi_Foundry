@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "src/DamnValuableToken.sol";
 
-import "src/TheRewarder/TheRewarderPool.sol";
-import "src/TheRewarder/FlashLoanerPool.sol";
-// import "src/TheRewarder/AccountingToken.sol";
-// import "src/TheRewarder/RewardToken.sol";
+import {TheRewarderPool} from "src/TheRewarder/TheRewarderPool.sol";
+import {FlashLoanerPool} from "src/TheRewarder/FlashLoanerPool.sol";
+import {AccountingToken} from "src/TheRewarder/AccountingToken.sol";
+import {RewardToken} from "src/TheRewarder/RewardToken.sol";
 
 // Challenge #5 - The Rewarder
 // https://www.damnvulnerabledefi.xyz/challenges/the-rewarder/
