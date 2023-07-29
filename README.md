@@ -11,6 +11,8 @@
 > [Truster](#truster)
 >
 > [Side Entrance](#side-entrance)
+>
+> [The Rewarder](#the-rewarder)
 
 ---
 
@@ -80,3 +82,63 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/side_entrance.t.sol)
 
 `forge test --match-path ./test/side_entrance.t.sol -vvv`
+
+## The Rewarder
+
+这次给出的是一个利用流动性质押获得奖励的代币池
+
+在奖励池计算奖励上存在几个漏洞:
+
+1. 奖励的计算实现是通过一个奖励代币快照实现的,具体是专门有个 AccountingToken 的代币,人们在存入质押代币的同时,质押池会为人们铸造等量的 AccountingToken 来记录,而这个质押奖励是在 5 天结算一次的,实现上就是每 5 天给 AccountingToken 照个快照,问题也是这个快照是在固定的时间点照的,而且看它的计算公式 `rewards = amountDeposited.mulDiv(REWARDS, totalDeposits);` ,在池资产较低时将大量代币投入池中就可以操纵奖励金额,所以这里问题多多
+
+2. 奖励的领取时限上也很有问题,看下面的逻辑
+
+```js
+    if (amountDeposited > 0 && totalDeposits > 0) {
+        rewards = amountDeposited.mulDiv(REWARDS, totalDeposits);
+        if (rewards > 0 && !_hasRetrievedReward(msg.sender)) {
+            rewardToken.mint(msg.sender, rewards);
+            astRewardTimestamps[msg.sender] = uint64(block.timestamp);
+        }
+    }
+
+    function _hasRetrievedReward(address account) private view returns (bool) {
+        return (
+            lastRewardTimestamps[account] >= lastRecordedSnapshotTimestamp
+            && lastRewardTimestamps[account] <= lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION
+        );
+    }
+```
+
+在满足计算出的 reward > 0 这个大前提的情况下,这时如果是第一次在这里领取奖励的话,完全就可以绕过 5 天即 REWARDS_ROUND_MIN_DURATION 的时间限制直接拿到奖励
+
+3. AccountingToken 快照的实现也有问题,具体看快照的逻辑:
+
+```js
+    function deposit(uint256 amount) external {
+        if (amount == 0) {
+            revert InvalidDepositAmount();
+        }
+
+        accountingToken.mint(msg.sender, amount);
+        // 这个快照实现逻辑的函数应该要在上面 accountingToken.mint() 的前面
+        distributeRewards();
+
+        SafeTransferLib.safeTransferFrom(
+            liquidityToken,
+            msg.sender,
+            address(this),
+            amount
+        );
+    }
+```
+
+只要到了新的一轮周期,就更新快照,但是这个快照的实现竟然是在 accountingToken.mint() 的后面,也就是先算了新存进去的钱,再找快照,那这轮奖励里自然多了本该下一轮才结算的奖励
+
+也就是直接存,就直接 reward 算出来是有的了,配合上面那个直接提 reward,显然就可以攻击了
+
+**攻击的大概流程:** 身无分文,先闪电贷,利用闪电贷回调,质押,解质押(在里面就包含有提 reward 环节的,省心),转 reward 走,还闪电贷,over (注意在模拟的时候,要先让它跑一个周期(5 天))
+
+[Solution](./test/the_rewarder.t.sol)
+
+`forge test --match-path ./test/the_rewarder.t.sol -vvv`
