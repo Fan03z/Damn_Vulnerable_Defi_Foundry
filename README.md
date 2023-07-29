@@ -13,6 +13,8 @@
 > [Side Entrance](#side-entrance)
 >
 > [The Rewarder](#the-rewarder)
+>
+> [Selfie](#selfie)
 
 ---
 
@@ -142,3 +144,21 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/the_rewarder.t.sol)
 
 `forge test --match-path ./test/the_rewarder.t.sol -vvv`
+
+## Selfie
+
+这是一个涉及 质押 Dao 和 闪电贷池 的攻击,简单说下组成:
+
+这个自治组织是通过质押某种代币到一池子内,通过在池子内质押的代币快照确认份额,从而获得对应的提案权,而其中这个质押的池子还提供闪电贷的服务
+
+成分复杂,内容拉满,但也有几个漏洞问题:
+
+1. 首先最大的问题就是池子质押的代币和治理代币竟然是一种代币
+
+2. 允许任何人都可以对池子的质押代币进行快照,也就意味着人们可以随时确认自己的份额
+
+这两个漏洞已经够了,大概攻击过程: 先闪电贷,回调中直接快照确认份额并拿到提案权,提案申请毁池,还闪电贷回去,过两天后(硬性要求提案要拖两天),直接毁池并转出池子所有的资产,完成攻击
+
+[Solution](./test/selfie.t.sol)
+
+`forge test --match-path ./test/selfie.t.sol -vvv`
