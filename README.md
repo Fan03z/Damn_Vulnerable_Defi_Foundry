@@ -1,8 +1,8 @@
-# Damn Vulnerable Defi
+# Damn Vulnerable Defi V3
 
 [Damn Vulnerable Defi](https://www.damnvulnerabledefi.xyz/) 是款针对在 Defi 领域合约安全审计的 wargame
 
-此 repo 是针对 Damn Vulnerable DeFi 在 foundry 上的解决方案
+此 repo 是针对 Damn Vulnerable DeFi V3 在 foundry 上的解决方案
 
 > [Unstoppable](#unstoppable)
 >
