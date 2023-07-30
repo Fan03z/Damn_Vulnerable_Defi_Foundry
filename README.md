@@ -15,6 +15,8 @@
 > [The Rewarder](#the-rewarder)
 >
 > [Selfie](#selfie)
+>
+> [Compromised](#compromised)
 
 ---
 
@@ -162,3 +164,17 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/selfie.t.sol)
 
 `forge test --match-path ./test/selfie.t.sol -vvv`
+
+## Compromised
+
+题目已经给出了从 web 服务器端捕获到的两段 http 报文,这就是对应其中两个预言机的私钥
+
+只要对报文,从十六进制转换为 ASCII 码,再 经过 base64 decode 就能得到两个私钥了 (具体实现逻辑在 script/compromised.js 下)
+
+`node script/compromised.js`
+
+得到私钥 `0xc678ef1aa456da65c6fc5861d44892cdfac0c6c8c2560bf0c9fbcdae2f4735a9` 和 `0x208242c40acdfa9ed889e685c23547acbed9befc60371e9875fbcd736340bb48` ,总共三个预言机,操纵了两个,后面攻击就简单多了,只要操纵价格预言机,然后调整 NFT 价格,低买高卖就可以了
+
+[Solution](./test/compromised.t.sol)
+
+`forge test --match-path ./test/compromised.t.sol -vvv`
