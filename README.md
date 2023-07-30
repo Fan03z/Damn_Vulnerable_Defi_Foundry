@@ -17,6 +17,8 @@
 > [Selfie](#selfie)
 >
 > [Compromised](#compromised)
+>
+> [Puppet](#puppet)
 
 ---
 
@@ -178,3 +180,15 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/compromised.t.sol)
 
 `forge test --match-path ./test/compromised.t.sol -vvv`
+
+## Puppet
+
+这个攻击实例就很真实的暴露出 Uniswap V1 的问题: 对于流动性小的池子,价格很容易被操控
+
+这次攻击实现也是利用了这点,因为 DVT 借贷池参考的是 Uniswap 的 DVT/ETH 池子价格
+
+**攻击大概步骤:** 先在 Uniswap V1 池子里将 DVT 换为 ETH,操纵价格,再到借贷池里用少量的 ETH 就可以借贷出所有的 DVT 了
+
+[Solution](./test/puppet.t.sol)
+
+`forge test --match-path ./test/puppet.t.sol -vvv`
