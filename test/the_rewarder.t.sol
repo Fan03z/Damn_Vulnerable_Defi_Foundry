@@ -31,7 +31,7 @@ contract Attack is Test {
     address public constant DAVID = 0x6251BE44527c4237eb4a96A4dc75748476D20eC1;
     address[] public users = [ALICE, BOB, CHARLIE, DAVID];
 
-    address public hacker = 0x4A6f6E8A8433e06cb3ce41BE74Ba4bcb074C6282;
+    address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
 
     function setUp() public {
         liquidityToken = new DamnValuableToken();

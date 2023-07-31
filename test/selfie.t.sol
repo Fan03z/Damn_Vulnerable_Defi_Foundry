@@ -15,7 +15,7 @@ contract Attack is Test {
     SimpleGovernance public governance;
     SelfiePool public pool;
 
-    address public hacker = 0x4A6f6E8A8433e06cb3ce41BE74Ba4bcb074C6282;
+    address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
 
     uint256 public constant TOKEN_INITIAL_SUPPLY = 2000000 * 1e18;
     uint256 public constant TOKENS_IN_POOL = 1500000 * 1e18;

@@ -15,8 +15,8 @@ contract Attack is Test {
     UnstoppableVault public vault;
     ReceiverUnstoppable public receiverContract;
 
-    address public deployer = 0xC8cE76531d914775C3f203eDd37E0cD42Ede2fa1;
-    address public hacker = 0x4A6f6E8A8433e06cb3ce41BE74Ba4bcb074C6282;
+    address public deployer = payable(address(uint160(uint256(keccak256(abi.encodePacked("deployer"))))));
+    address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
 
     uint256 public constant TOKENS_IN_VAULT = 1000000 * 10e18;
     uint256 public constant INITIAL_PLAYER_TOKEN_BALANCE = 10 * 10e18;

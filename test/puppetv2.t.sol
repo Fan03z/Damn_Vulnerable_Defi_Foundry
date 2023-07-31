@@ -19,7 +19,7 @@ contract Attack is Test {
     IUniswapV2Pair internal uniswapV2Pair;
     PuppetV2Pool public lendingPool;
 
-    address public hacker = 0x4A6f6E8A8433e06cb3ce41BE74Ba4bcb074C6282;
+    address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
 
     // Uniswap exchange will start with 100 DVT and 10 WETH in liquidity
     uint256 internal constant UNISWAP_INITIAL_TOKEN_RESERVE = 100e18;

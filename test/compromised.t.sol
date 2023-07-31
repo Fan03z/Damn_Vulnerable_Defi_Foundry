@@ -17,7 +17,7 @@ contract Attack is Test {
     TrustfulOracle public oracle;
     Exchange public exchange;
 
-    address public hacker = 0x4A6f6E8A8433e06cb3ce41BE74Ba4bcb074C6282;
+    address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
     address[] public sources = [
         0xA73209FB1a42495120166736362A1DfA9F95A105,
         0xe92401A4d3af5E446d93D11EEc806b1462b39D15,
