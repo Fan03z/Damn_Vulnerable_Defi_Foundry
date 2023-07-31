@@ -19,6 +19,8 @@
 > [Compromised](#compromised)
 >
 > [Puppet](#puppet)
+>
+> [Puppet V2](#puppet-v2)
 
 ---
 
@@ -192,3 +194,13 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/puppet.t.sol)
 
 `forge test --match-path ./test/puppet.t.sol -vvv`
+
+## Puppet V2
+
+这次借贷池调用的是 Uniswap V2 ,对比 V1 引入了 TWAP(时间加权平均价格) 的概念,就是采用多个时间的平均的价格加权得到预言机的价格,能有效防止 V1 时的那种预言机操纵,并且会在每个区块的开头就测量一下价格,这样加权算进去就很难操纵价格的短时大范围波动了
+
+可惜的是,借贷池计算质押时,用的还是现货当前价格,而没使用 TWAP ,因此也是跟 [Puppet](#puppet) 差不多的攻击流程
+
+[Solution](./test/puppetv2.t.sol)
+
+`forge test --match-path ./test/puppetv2.t.sol -vvv`
