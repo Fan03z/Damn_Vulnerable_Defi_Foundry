@@ -21,6 +21,8 @@
 > [Puppet](#puppet)
 >
 > [Puppet V2](#puppet-v2)
+>
+> [Free Rider](#free-rider)
 
 ---
 
@@ -204,3 +206,23 @@ uint256 balanceBefore = address(this).balance;
 [Solution](./test/puppetv2.t.sol)
 
 `forge test --match-path ./test/puppetv2.t.sol -vvv`
+
+## Free Rider
+
+目的是要获得 marketPlace 里的 NFT 和一些 ETH,最后 NFT 回到接收地址 recoverer 去,而得到的 ETH 到 hacker 地址去
+
+主要抓住漏洞: FreeRiderNFTMarketplace 合约里的 \_buyOne() 逻辑有问题,卖家出售的 NFT 的同时还倒打钱给买家
+
+```js
+_token.safeTransferFrom(_token.ownerOf(tokenId), msg.sender, tokenId);
+
+payable(_token.ownerOf(tokenId)).sendValue(priceToPay);
+```
+
+而且调用 buyMany() 一次买多个的话,也是多次调用 \_buyOne() 的逻辑,但在 msg.value 上只检查包含购买一次的钱,也就是其实发购买一次的钱,就可以调用 buyMany(),再加上卖出去的钱也是打买家账户,攻击逻辑就完整了
+
+**攻击大概流程**: 先闪电贷,然后发一次的 ETH 去 marketPlace 调 buyMany() 买 NFT,还闪电贷后再把 NFT 发回给 recoverer 就好了
+
+[Solution](./test/free_rider.t.sol)
+
+`forge test --match-path ./test/free_rider.t.sol -vvv`
