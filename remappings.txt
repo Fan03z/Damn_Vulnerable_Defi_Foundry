@@ -1,0 +1,5 @@
+forge-std/=lib/forge-std/src/
+solady/=lib/solady/
+solmate/=lib/solmate/src/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
+@gnosis.pm/safe-contracts/=lib/safe-contracts/
