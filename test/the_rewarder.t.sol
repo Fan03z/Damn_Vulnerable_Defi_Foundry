@@ -25,10 +25,10 @@ contract Attack is Test {
     uint256 public snapshotRole;
     uint256 public burnerRole;
 
-    address public constant ALICE = 0xAc31e66FF6AEA312B6d853c3e6AcC9f8dFDd1390;
-    address public constant BOB = 0xc1F265e222c5A4b6c8C536F9cc138C648518B6AC;
-    address public constant CHARLIE = 0x91397E66Fe646fd66b59609F73D8719Bd1eA4d50;
-    address public constant DAVID = 0x6251BE44527c4237eb4a96A4dc75748476D20eC1;
+    address public constant ALICE = payable(address(uint160(uint256(keccak256(abi.encodePacked("alice"))))));
+    address public constant BOB = payable(address(uint160(uint256(keccak256(abi.encodePacked("bob"))))));
+    address public constant CHARLIE = payable(address(uint160(uint256(keccak256(abi.encodePacked("charlie"))))));
+    address public constant DAVID = payable(address(uint160(uint256(keccak256(abi.encodePacked("david"))))));
     address[] public users = [ALICE, BOB, CHARLIE, DAVID];
 
     address public hacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("hacker"))))));
