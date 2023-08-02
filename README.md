@@ -23,6 +23,8 @@
 > [Puppet V2](#puppet-v2)
 >
 > [Free Rider](#free-rider)
+>
+> [Backdoor](#backdoor)
 
 ---
 
@@ -226,3 +228,77 @@ payable(_token.ownerOf(tokenId)).sendValue(priceToPay);
 [Solution](./test/free_rider.t.sol)
 
 `forge test --match-path ./test/free_rider.t.sol -vvv`
+
+## Backdoor
+
+目标是帮 WalletRegistry 里那四个 beneficiary 注册 [Safe](https://github.com/safe-global/safe-contracts) 钱包,每人注册时都会得到 10 个 DVT 代币奖励,但这一共 40 个 DVT 得到 hacker 袋子里
+
+**逻辑分析:** 首先看看是怎么注册钱包的,注册钱包是通过调用 walletFactory 钱包工厂合约里的 createProxyWithCallback() 实现的,而在调用注册钱包的这个函数后就回调 WalletRegistry 注册人名单合约里的 proxyCreated(),其中有
+
+```js
+// Ensure initial calldata was a call to `Safe::setup`
+if (bytes4(initializer[:4]) != Safe.setup.selector) {
+    revert WrongInitialization();
+}
+```
+
+看到这里调用了 Safe.setup(),到 Safe 钱包合约的 setup()
+
+```js
+function setup(
+    address[] calldata _owners,
+    uint256 _threshold,
+    address to,
+    bytes calldata data,
+    address fallbackHandler,
+    address paymentToken,
+    uint256 payment,
+    address payable paymentReceiver
+) external {
+    setupOwners(_owners, _threshold);
+    if (fallbackHandler != address(0)) internalSetFallbackHandler(fallbackHandler);
+
+    setupModules(to, data);
+
+    if (payment > 0) {
+        handlePayment(payment, 0, 1, paymentToken, paymentReceiver);
+    }
+    emit SafeSetup(msg.sender, _owners, _threshold, to, fallbackHandler);
+}
+```
+
+这里传入的字节码会在 `setupModules(to, data);` 这里调用传入的 data 字节码,但还有 `if (fallbackHandler != address(0)) internalSetFallbackHandler(fallbackHandler);` 就是在调用 setup() 时,如果第五个参数 fallbackHandler 和空地址对不上的话,就会调用 `internalSetFallbackHandler(fallbackHandler)`
+
+`internalSetFallbackHandler(fallbackHandler)`定义在 FallbackManager 合约里,同时这个合约里还有 fallback() 这么个注册钱包的'后门'方法
+
+```js
+fallback() external {
+    bytes32 slot = FALLBACK_HANDLER_STORAGE_SLOT;
+    assembly {
+        let handler := sload(slot)
+        if iszero(handler) {
+            return(0, 0)
+        }
+        calldatacopy(0, 0, calldatasize())
+        mstore(calldatasize(), shl(96, caller()))
+        let success := call(gas(), handler, 0, 0, add(calldatasize(), 20), 0, 0)
+        returndatacopy(0, 0, returndatasize())
+        if iszero(success) {
+            revert(0, returndatasize())
+        }
+        return(0, returndatasize())
+    }
+}
+```
+
+这段 fallback()允许了对 handler 地址上的任何方法调用,注意那奖励的 DVT 本身是在 Safe 钱包上的,而不是 beneficiary 地址上的,如果 fallbackHandler 传入的是 DVT 地址的话,那就意味着将允许钱包本身调用 DVT 上的方法,而且还是以钱包的身份直接进行低级调用,要是调用 DVT 上的 transfer() 就可以直接把钱包里的 DVT 转出来了,那攻击就实现了
+
+**攻击流程**: 调用 walletFactory.createProxyWithCallback() 注册钱包,传入特定设置了调用 setup() 并且 fallbackHandler 参数为 DVT 地址的 data,再对钱包进行 transfer(address,uint256 amount) 调用,直接传 DVT 到指定的 hacker 地址就好了
+
+[完整分析参考](https://stermi.medium.com/damn-vulnerable-defi-challenge-11-solution-backdoor-bc9651a49e22)
+
+这种攻击忽略了 hacker 只进行一次交易的要求,如果只要进行一次交易的话,可以设置两个合约,其中一个合约里部署到另一个合约,而攻击逻辑就在第二个合约的构造函数里,具体看[分析实现](https://dacian.me/damn-vulnerable-defi-backdoor-solution#heading-test-setup-analysis-backdoorchallengejshttpsgithubcomdevdaciandamn-vulnerable-defi-solutionsblobmastertestbackdoorbackdoorchallengejs)
+
+[Solution](./test/backdoor.t.sol)
+
+`forge test --match-path ./test/backdoor.t.sol -vvv`
