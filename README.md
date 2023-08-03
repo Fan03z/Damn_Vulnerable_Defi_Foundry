@@ -25,6 +25,8 @@
 > [Free Rider](#free-rider)
 >
 > [Backdoor](#backdoor)
+>
+> [Climber](#climber)
 
 ---
 
@@ -33,6 +35,8 @@
 目标是想让金库的闪电贷停摆,即对其合约发动 Dos 攻击
 
 金库闪电贷的基础代币是"DVT",对应的金库铸造的代币凭证是"oDVT"
+
+**漏洞:**
 
 UnstoppableVault 合约中的 flashLoan() 存在问题:
 
@@ -53,6 +57,8 @@ if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // e
 
 ## Naive Receiver
 
+**漏洞:**
+
 漏洞在于 pool 合约逻辑上允许任何人代替任何接受者调用 flashloan(),因此可以耗尽接收合约里的资金
 
 具体只要另外实现一个攻击逻辑的合约,在合约的 fallback() 上代替接受者调 flashloan() 就可以了,调一次就抽接受者 flashFee() 的 ETH ,多调几次就抽干接受者的资金到池子里去了(当然这里例子是直接设置了 flashFee()是 1 ether,事实上不会到那么贵的)
@@ -63,12 +69,14 @@ if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // e
 
 ## Truster
 
+**漏洞:**
+
 ```js
 token.transfer(borrower, amount);
 target.functionCall(data);
 ```
 
-漏洞在于调用 flashloan()时,不对 amount 进行限制,也就是甚至可以进行 0 金额的闪贷
+问题在于调用 flashloan()时,不对 amount 进行限制,也就是甚至可以进行 0 金额的闪贷
 
 而且 flashloan()的内部还支持 call 外部的函数
 
@@ -79,6 +87,8 @@ target.functionCall(data);
 `forge test --match-path ./test/truster.t.sol -vvv`
 
 ## Side Entrance
+
+**漏洞:**
 
 ```js
 // 存储或者提取改的都是设置的balances数组的值
@@ -98,6 +108,8 @@ uint256 balanceBefore = address(this).balance;
 ## The Rewarder
 
 这次给出的是一个利用流动性质押获得奖励的代币池
+
+**漏洞:**
 
 在奖励池计算奖励上存在几个漏洞:
 
@@ -149,7 +161,9 @@ uint256 balanceBefore = address(this).balance;
 
 也就是直接存,就直接 reward 算出来是有的了,配合上面那个直接提 reward,显然就可以攻击了
 
-**攻击的大概流程:** 身无分文,先闪电贷,利用闪电贷回调,质押,解质押(在里面就包含有提 reward 环节的,省心),转 reward 走,还闪电贷,over (注意在模拟的时候,要先让它跑一个周期(5 天))
+**攻击流程:**
+
+身无分文,先闪电贷,利用闪电贷回调,质押,解质押(在里面就包含有提 reward 环节的,省心),转 reward 走,还闪电贷,over (注意在模拟的时候,要先让它跑一个周期(5 天))
 
 [Solution](./test/the_rewarder.t.sol)
 
@@ -161,7 +175,9 @@ uint256 balanceBefore = address(this).balance;
 
 这个自治组织是通过质押某种代币到一池子内,通过在池子内质押的代币快照确认份额,从而获得对应的提案权,而其中这个质押的池子还提供闪电贷的服务
 
-成分复杂,内容拉满,但也有几个漏洞问题:
+**漏洞:**
+
+成分复杂,内容拉满,但也存在有几个问题:
 
 1. 首先最大的问题就是池子质押的代币和治理代币竟然是一种代币
 
@@ -193,7 +209,9 @@ uint256 balanceBefore = address(this).balance;
 
 这次攻击实现也是利用了这点,因为 DVT 借贷池参考的是 Uniswap 的 DVT/ETH 池子价格
 
-**攻击大概步骤:** 先在 Uniswap V1 池子里将 DVT 换为 ETH,操纵价格,再到借贷池里用少量的 ETH 就可以借贷出所有的 DVT 了
+**攻击流程:**
+
+先在 Uniswap V1 池子里将 DVT 换为 ETH,操纵价格,再到借贷池里用少量的 ETH 就可以借贷出所有的 DVT 了
 
 [Solution](./test/puppet.t.sol)
 
@@ -223,7 +241,9 @@ payable(_token.ownerOf(tokenId)).sendValue(priceToPay);
 
 而且调用 buyMany() 一次买多个的话,也是多次调用 \_buyOne() 的逻辑,但在 msg.value 上只检查包含购买一次的钱,也就是其实发购买一次的钱,就可以调用 buyMany(),再加上卖出去的钱也是打买家账户,攻击逻辑就完整了
 
-**攻击大概流程**: 先闪电贷,然后发一次的 ETH 去 marketPlace 调 buyMany() 买 NFT,还闪电贷后再把 NFT 发回给 recoverer 就好了
+**攻击流程**:
+
+先闪电贷,然后发一次的 ETH 去 marketPlace 调 buyMany() 买 NFT,还闪电贷后再把 NFT 发回给 recoverer 就好了
 
 [Solution](./test/free_rider.t.sol)
 
@@ -233,7 +253,9 @@ payable(_token.ownerOf(tokenId)).sendValue(priceToPay);
 
 目标是帮 WalletRegistry 里那四个 beneficiary 注册 [Safe](https://github.com/safe-global/safe-contracts) 钱包,每人注册时都会得到 10 个 DVT 代币奖励,但这一共 40 个 DVT 得到 hacker 袋子里
 
-**逻辑分析:** 首先看看是怎么注册钱包的,注册钱包是通过调用 walletFactory 钱包工厂合约里的 createProxyWithCallback() 实现的,而在调用注册钱包的这个函数后就回调 WalletRegistry 注册人名单合约里的 proxyCreated(),其中有
+**逻辑分析:**
+
+首先看看是怎么注册钱包的,注册钱包是通过调用 walletFactory 钱包工厂合约里的 createProxyWithCallback() 实现的,而在调用注册钱包的这个函数后就回调 WalletRegistry 注册人名单合约里的 proxyCreated(),其中有
 
 ```js
 // Ensure initial calldata was a call to `Safe::setup`
@@ -293,7 +315,9 @@ fallback() external {
 
 这段 fallback()允许了对 handler 地址上的任何方法调用,注意那奖励的 DVT 本身是在 Safe 钱包上的,而不是 beneficiary 地址上的,如果 fallbackHandler 传入的是 DVT 地址的话,那就意味着将允许钱包本身调用 DVT 上的方法,而且还是以钱包的身份直接进行低级调用,要是调用 DVT 上的 transfer() 就可以直接把钱包里的 DVT 转出来了,那攻击就实现了
 
-**攻击流程**: 调用 walletFactory.createProxyWithCallback() 注册钱包,传入特定设置了调用 setup() 并且 fallbackHandler 参数为 DVT 地址的 data,再对钱包进行 transfer(address,uint256 amount) 调用,直接传 DVT 到指定的 hacker 地址就好了
+**攻击流程**:
+
+调用 walletFactory.createProxyWithCallback() 注册钱包,传入特定设置了调用 setup() 并且 fallbackHandler 参数为 DVT 地址的 data,再对钱包进行 transfer(address,uint256 amount) 调用,直接传 DVT 到指定的 hacker 地址就好了
 
 [完整分析参考](https://stermi.medium.com/damn-vulnerable-defi-challenge-11-solution-backdoor-bc9651a49e22)
 
@@ -302,3 +326,39 @@ fallback() external {
 [Solution](./test/backdoor.t.sol)
 
 `forge test --match-path ./test/backdoor.t.sol -vvv`
+
+## Climber
+
+目标在于获得 ClimberVault 金库里的资金,但 ClimberVault 是可以通过 UUPS 升级的(可以参考到 EIP1967 代理升级提案,openzeppelin 里也有相关的实现库),而 ClimberVault 代理的管理合约就是 ClimberTimelock 合约
+
+**漏洞:**
+
+在 ClimberTimelock 合约上的 execute() 存在逻辑问题,首先是人人都可以支持调用 execute() 的,这也没什么,只要在调用后执行时会进行一系列全面的 revert 检查就好了,但是问题也是在于检查不够详尽
+
+```js
+// execute()内
+for (uint8 i = 0; i < targets.length;) {
+    targets[i].functionCallWithValue(dataElements[i], values[i]);
+    unchecked {
+                ++i;
+    }
+}
+
+if (getOperationState(id) != OperationState.ReadyForExecution) {
+    revert NotReadyForExecution(id);
+}
+```
+
+这个 for 循环逻辑的执行要在下面那个检查的前面,而且更大的问题是这个 for 循环里面还支持了以 ClimberTimelock 身份的 call 低级调用,而且还是调用的 bytes[],怎么调用、调用什么、是否要以 ClimberTimelock 身份调用都由你来决定,那这就破功了
+
+**攻击流程:**
+
+首先是准备和部署两份攻击合约,分别为 ClimberAttack 和 FakeVault. 利用 execute() 这一漏洞,先以 ClimberTimelock 的身份前后调用 updateDelay(),grantRole(), 设置提案执行延迟为 0,再将 ClimberAttack 恶意合约提拔到 PROPOSER_ROLE 身份,使我们能操控 ClimberAttack 来提出提案
+
+这时准备好 FakeVault 合约,ClimberAttack 发出提议替换金库的逻辑合约从原来的 ClimberVault 换为 FakeVault,再次利用 execute() 漏洞来通过这个提议
+
+之后就可以直接通过 ClimberVault 里的 sweepFunds() 转走金库合约的资金就好了
+
+[Solution](./test/climber.t.sol)
+
+`forge test --match-path ./test/climber.t.sol -vvv`
