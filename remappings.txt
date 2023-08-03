@@ -2,4 +2,5 @@ forge-std/=lib/forge-std/src/
 solady/=lib/solady/
 solmate/=lib/solmate/src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
+openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 @gnosis.pm/safe-contracts/=lib/safe-contracts/
